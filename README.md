@@ -8,8 +8,8 @@ GitHub Pagesで公開された `index.html` をブラウザで開きます。
 
 1. 各入力欄に観測内容を書きます。
 2. 右側のMarkdownプレビューを確認します。
-3. `Markdownをコピー` ボタンでMarkdownをコピーします。
-4. 表示されたファイル名候補を使い、`entries/` フォルダにMarkdownファイルとして保存します。
+3. `Markdownをコピー` ボタンでMarkdownをコピーするか、`Markdownを保存` ボタンで `.md` ファイルをダウンロードします。
+4. 表示されたファイル名候補を使い、`entries/` フォルダにMarkdownファイルを追加します。
 
 ファイル名の例:
 
@@ -26,13 +26,32 @@ thought-map/
   index.html
   entries/
     .gitkeep
+    index.json
     2026-06-10-map001.md
   prompts/
     整理してもらう.md
   README.md
 ```
 
-`index.html` には保存機能を持たせていません。ブラウザ内でMarkdownを生成し、コピーした内容を手元で `.md` ファイルとして作成してから、`entries/` に追加する運用です。
+`index.html` はブラウザ内でMarkdownを生成し、コピーまたはダウンロードできます。GitHub API連携は行わないため、ダウンロードした `.md` ファイルは手動で `entries/` に追加します。
+
+## 採集一覧
+
+トップ画面の採集一覧は、`entries/index.json` を読み込んで表示します。GitHub Pagesだけでは `entries/` フォルダ内のファイルを自動列挙できないため、新しいMarkdownファイルを追加したら `entries/index.json` も更新します。
+
+例:
+
+```json
+[
+  {
+    "file": "2026-06-10-map001.md",
+    "date": "2026-06-10",
+    "title": "最初の思考地図"
+  }
+]
+```
+
+`file` には `entries/` から見たファイル名、`date` には `YYYY-MM-DD`、`title` には一覧に表示するタイトルを書きます。
 
 ## GitHub Pages
 

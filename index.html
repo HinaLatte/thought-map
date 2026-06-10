@@ -248,6 +248,89 @@
       line-height: 1.8;
     }
 
+    .entries-section {
+      margin-top: 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .entries-heading {
+      display: grid;
+      gap: 6px;
+    }
+
+    .entries-heading h2 {
+      margin: 0;
+      color: var(--accent-dark);
+      font-size: 1.35rem;
+      font-weight: 500;
+    }
+
+    .entries-note,
+    .entries-empty {
+      margin: 0;
+      color: var(--muted);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.88rem;
+    }
+
+    .entries-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .entries-month {
+      display: grid;
+      gap: 8px;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 14px;
+    }
+
+    .entries-month h3 {
+      margin: 0;
+      color: var(--accent-dark);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.92rem;
+      letter-spacing: 0.04em;
+    }
+
+    .entry-links {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .entry-link {
+      display: grid;
+      grid-template-columns: 8.2em minmax(0, 1fr);
+      gap: 12px;
+      align-items: baseline;
+      border: 1px solid var(--line-soft);
+      border-radius: 6px;
+      background: rgba(255, 252, 245, 0.58);
+      padding: 10px 12px;
+      text-decoration: none;
+    }
+
+    .entry-date {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    .entry-title {
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+
+    .entry-link:hover .entry-title {
+      color: var(--accent-dark);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
     footer {
       margin-top: 26px;
       color: var(--muted);
@@ -287,6 +370,11 @@
 
       .copy-button {
         width: 100%;
+      }
+
+      .entry-link {
+        grid-template-columns: 1fr;
+        gap: 2px;
       }
     }
   </style>
@@ -356,6 +444,7 @@
           </div>
           <div class="actions">
             <button class="copy-button" id="copyButton" type="button">Markdownをコピー</button>
+            <button class="copy-button" id="saveButton" type="button">Markdownを保存</button>
             <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
           </div>
         </div>
@@ -363,6 +452,16 @@
         <h2 class="preview-title">Markdownプレビュー</h2>
         <pre id="preview" aria-live="polite"></pre>
       </aside>
+    </section>
+
+    <section class="sheet entries-section" aria-labelledby="entriesTitle">
+      <div class="entries-heading">
+        <h2 id="entriesTitle">採集一覧</h2>
+        <p class="entries-note">entries/index.json に登録された思考地図を月ごとに表示します。</p>
+      </div>
+      <div class="entries-list" id="entriesList" aria-live="polite">
+        <p class="entries-empty">読み込み中です。</p>
+      </div>
     </section>
 
     <footer>index.html だけで動作します。</footer>
@@ -386,7 +485,9 @@
     const preview = document.getElementById('preview');
     const filename = document.getElementById('filename');
     const copyButton = document.getElementById('copyButton');
+    const saveButton = document.getElementById('saveButton');
     const copyStatus = document.getElementById('copyStatus');
+    const entriesList = document.getElementById('entriesList');
 
     function todayString() {
       const now = new Date();
@@ -461,13 +562,129 @@
       }
     }
 
+    function saveMarkdown() {
+      const markdown = buildMarkdown();
+      const suggestedName = filename.textContent.trim() || `${todayString()}-map${mapNumber}.md`;
+      const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = suggestedName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      copyStatus.textContent = 'ダウンロードを開始しました。';
+    }
+
+    function showEmptyEntries() {
+      entriesList.innerHTML = '';
+      const message = document.createElement('p');
+      message.className = 'entries-empty';
+      message.textContent = 'まだ採集された地図はありません';
+      entriesList.appendChild(message);
+    }
+
+    function monthLabel(monthKey) {
+      const parts = monthKey.split('-');
+      if (parts.length !== 2) {
+        return monthKey;
+      }
+
+      return `${parts[0]}年${parts[1]}月`;
+    }
+
+    function entryHref(file) {
+      return `entries/${encodeURIComponent(file).replace(/%2F/g, '/')}`;
+    }
+
+    function renderEntries(entries) {
+      const validEntries = entries
+        .filter((entry) => entry && entry.file && entry.date)
+        .sort((a, b) => b.date.localeCompare(a.date) || b.file.localeCompare(a.file));
+
+      if (validEntries.length === 0) {
+        showEmptyEntries();
+        return;
+      }
+
+      const groups = validEntries.reduce((result, entry) => {
+        const month = entry.date.slice(0, 7);
+        if (!result[month]) {
+          result[month] = [];
+        }
+
+        result[month].push(entry);
+        return result;
+      }, {});
+
+      entriesList.innerHTML = '';
+
+      Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach((month) => {
+        const section = document.createElement('section');
+        section.className = 'entries-month';
+
+        const heading = document.createElement('h3');
+        heading.textContent = monthLabel(month);
+        section.appendChild(heading);
+
+        const list = document.createElement('ul');
+        list.className = 'entry-links';
+
+        groups[month].forEach((entry) => {
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          const date = document.createElement('span');
+          const title = document.createElement('span');
+
+          link.className = 'entry-link';
+          link.href = entryHref(entry.file);
+          date.className = 'entry-date';
+          date.textContent = entry.date;
+          title.className = 'entry-title';
+          title.textContent = entry.title || entry.file;
+
+          link.append(date, title);
+          item.appendChild(link);
+          list.appendChild(item);
+        });
+
+        section.appendChild(list);
+        entriesList.appendChild(section);
+      });
+    }
+
+    async function loadEntries() {
+      try {
+        const response = await fetch('entries/index.json', { cache: 'no-store' });
+        if (!response.ok) {
+          showEmptyEntries();
+          return;
+        }
+
+        const entries = await response.json();
+        if (!Array.isArray(entries) || entries.length === 0) {
+          showEmptyEntries();
+          return;
+        }
+
+        renderEntries(entries);
+      } catch (error) {
+        showEmptyEntries();
+      }
+    }
+
     fields.forEach((id) => {
       document.getElementById(id).addEventListener('input', updateView);
     });
 
     copyButton.addEventListener('click', copyMarkdown);
+    saveButton.addEventListener('click', saveMarkdown);
     form.addEventListener('submit', (event) => event.preventDefault());
     updateView();
+    loadEntries();
   </script>
 </body>
 </html>
