@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>思考地図採集帳</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f2e8;
+      --paper-strong: #fffaf0;
+      --ink: #2f2a24;
+      --muted: #746b5f;
+      --line: #d8cdbb;
+      --line-soft: #e9dfcf;
+      --accent: #6d7b5e;
+      --accent-dark: #4f5d43;
+      --field: rgba(255, 252, 245, 0.86);
+      --shadow: 0 18px 45px rgba(73, 58, 39, 0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background:
+        linear-gradient(rgba(247, 242, 232, 0.94), rgba(247, 242, 232, 0.94)),
+        repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(120, 95, 60, 0.08) 32px),
+        #f3ecdd;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+      line-height: 1.7;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 44px 0 56px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 22px;
+    }
+
+    .eyebrow {
+      color: var(--accent-dark);
+      font-size: 0.86rem;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.96rem;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 0.82fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .sheet {
+      background: linear-gradient(145deg, rgba(255, 250, 240, 0.94), rgba(250, 244, 232, 0.9));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--accent-dark);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.86rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.78rem;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--field);
+      color: var(--ink);
+      outline: none;
+      padding: 11px 12px;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    textarea {
+      min-height: 104px;
+      resize: vertical;
+    }
+
+    #path {
+      min-height: 150px;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(109, 123, 94, 0.78);
+      background: #fffdf8;
+      box-shadow: 0 0 0 3px rgba(109, 123, 94, 0.12);
+    }
+
+    .preview-panel {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .meta-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .filename-wrap {
+      display: grid;
+      gap: 7px;
+    }
+
+    .filename-wrap label {
+      color: var(--accent-dark);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .filename {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--line-soft);
+      border-radius: 6px;
+      background: rgba(255, 252, 245, 0.72);
+      padding: 9px 12px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9rem;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .copy-button {
+      min-height: 44px;
+      border: 1px solid var(--accent-dark);
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fffdf7;
+      cursor: pointer;
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-weight: 600;
+      padding: 9px 16px;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+
+    .copy-button:hover {
+      background: var(--accent-dark);
+    }
+
+    .copy-button:active {
+      transform: translateY(1px);
+    }
+
+    .copy-status {
+      min-height: 1.7em;
+      color: var(--accent-dark);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.82rem;
+    }
+
+    .preview-title {
+      margin: 0;
+      color: var(--accent-dark);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    pre {
+      min-height: 560px;
+      max-height: calc(100vh - 260px);
+      overflow: auto;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background:
+        linear-gradient(rgba(255, 252, 245, 0.9), rgba(255, 252, 245, 0.9)),
+        repeating-linear-gradient(0deg, transparent 0, transparent 29px, rgba(120, 95, 60, 0.08) 30px);
+      color: var(--ink);
+      padding: 18px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+
+    footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-family: "Hiragino Sans", "Yu Gothic", "YuGothic", system-ui, sans-serif;
+      font-size: 0.8rem;
+      text-align: right;
+    }
+
+    @media (max-width: 920px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        position: static;
+      }
+
+      pre {
+        min-height: 420px;
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 22px, 1180px);
+        padding: 28px 0 36px;
+      }
+
+      .sheet {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .copy-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div class="eyebrow">MNP Markdown Generator</div>
+      <h1>思考地図採集帳</h1>
+      <p class="lead">心の観測、思考の流れ、身体反応、気づき、手当て、ひだまりをひとつの地図として採集します。</p>
+    </header>
+
+    <section class="workspace" aria-label="思考地図採集帳の入力とプレビュー">
+      <form class="sheet form-grid" id="mapForm">
+        <div class="field">
+          <label for="title">title / タイトル</label>
+          <input id="title" name="title" type="text" autocomplete="off" placeholder="例：朝の胸のざわめき">
+        </div>
+
+        <div class="field">
+          <label for="event">event / できごと</label>
+          <textarea id="event" name="event" placeholder="何が起きたか、外側の出来事をそのまま書く"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="path">path / 思考の流れ</label>
+          <span class="hint">複数行で入力できます。</span>
+          <textarea id="path" name="path" placeholder="浮かんだ順に、短い行で書き留める"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="body">body / 身体反応</label>
+          <textarea id="body" name="body" placeholder="胸、腹、肩、呼吸、体温など"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="feeling">feeling / 感情</label>
+          <textarea id="feeling" name="feeling" placeholder="名前をつけられる気持ち、まだ曖昧な気配"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="fact">fact / 事実</label>
+          <textarea id="fact" name="fact" placeholder="確認できること、まだ分からないことを分けて書く"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="insight">insight / 気づき</label>
+          <textarea id="insight" name="insight" placeholder="見えてきた構造、繰り返し、願い"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="care">care / 手当て</label>
+          <textarea id="care" name="care" placeholder="今できる小さな対応、休ませ方、助けの求め方"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="sunlight">sunlight / ひだまり</label>
+          <textarea id="sunlight" name="sunlight" placeholder="少しあたたかかったこと、残しておきたいもの"></textarea>
+        </div>
+      </form>
+
+      <aside class="sheet preview-panel" aria-label="Markdownプレビュー">
+        <div class="meta-row">
+          <div class="filename-wrap">
+            <label for="filename">ファイル名候補</label>
+            <output class="filename" id="filename" name="filename">YYYY-MM-DD-map001.md</output>
+          </div>
+          <div class="actions">
+            <button class="copy-button" id="copyButton" type="button">Markdownをコピー</button>
+            <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <h2 class="preview-title">Markdownプレビュー</h2>
+        <pre id="preview" aria-live="polite"></pre>
+      </aside>
+    </section>
+
+    <footer>index.html だけで動作します。</footer>
+  </main>
+
+  <script>
+    const mapNumber = '001';
+    const fields = [
+      'title',
+      'event',
+      'path',
+      'body',
+      'feeling',
+      'fact',
+      'insight',
+      'care',
+      'sunlight'
+    ];
+
+    const form = document.getElementById('mapForm');
+    const preview = document.getElementById('preview');
+    const filename = document.getElementById('filename');
+    const copyButton = document.getElementById('copyButton');
+    const copyStatus = document.getElementById('copyStatus');
+
+    function todayString() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function valueOf(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function section(name) {
+      return `[${name}]\n${valueOf(name)}`;
+    }
+
+    function buildMarkdown() {
+      const date = todayString();
+      return [
+        `# map ${mapNumber}`,
+        '',
+        `date: ${date}`,
+        `title: ${valueOf('title')}`,
+        '',
+        section('event'),
+        '',
+        section('path'),
+        '',
+        section('body'),
+        '',
+        section('feeling'),
+        '',
+        section('fact'),
+        '',
+        section('insight'),
+        '',
+        section('care'),
+        '',
+        section('sunlight')
+      ].join('\n');
+    }
+
+    function updateView() {
+      const date = todayString();
+      filename.textContent = `${date}-map${mapNumber}.md`;
+      preview.textContent = buildMarkdown();
+      copyStatus.textContent = '';
+    }
+
+    async function copyMarkdown() {
+      const markdown = buildMarkdown();
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(markdown);
+        } else {
+          const helper = document.createElement('textarea');
+          helper.value = markdown;
+          helper.setAttribute('readonly', '');
+          helper.style.position = 'fixed';
+          helper.style.top = '-9999px';
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand('copy');
+          document.body.removeChild(helper);
+        }
+
+        copyStatus.textContent = 'コピーしました。';
+      } catch (error) {
+        copyStatus.textContent = 'コピーできませんでした。プレビュー欄から選択してください。';
+      }
+    }
+
+    fields.forEach((id) => {
+      document.getElementById(id).addEventListener('input', updateView);
+    });
+
+    copyButton.addEventListener('click', copyMarkdown);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    updateView();
+  </script>
+</body>
+</html>
