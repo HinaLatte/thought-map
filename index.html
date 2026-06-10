@@ -445,6 +445,7 @@
           <div class="actions">
             <button class="copy-button" id="copyButton" type="button">Markdownをコピー</button>
             <button class="copy-button" id="saveButton" type="button">Markdownを保存</button>
+            <button class="copy-button" id="issueButton" type="button">Issueとして保存</button>
             <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
           </div>
         </div>
@@ -486,8 +487,12 @@
     const filename = document.getElementById('filename');
     const copyButton = document.getElementById('copyButton');
     const saveButton = document.getElementById('saveButton');
+    const issueButton = document.getElementById('issueButton');
     const copyStatus = document.getElementById('copyStatus');
     const entriesList = document.getElementById('entriesList');
+    const githubOwner = 'HinaLatte';
+    const githubRepo = 'thought-map';
+    const issueLabel = 'thought-map-entry';
 
     function todayString() {
       const now = new Date();
@@ -579,6 +584,19 @@
       copyStatus.textContent = 'ダウンロードを開始しました。';
     }
 
+    function saveAsIssue() {
+      const suggestedName = filename.textContent.trim() || `${todayString()}-map${mapNumber}.md`;
+      const params = new URLSearchParams({
+        title: suggestedName,
+        body: buildMarkdown(),
+        labels: issueLabel
+      });
+      const issueUrl = `https://github.com/${githubOwner}/${githubRepo}/issues/new?${params.toString()}`;
+
+      window.open(issueUrl, '_blank', 'noopener');
+      copyStatus.textContent = 'GitHubのIssue作成画面を開きました。内容を確認して投稿してください。';
+    }
+
     function showEmptyEntries() {
       entriesList.innerHTML = '';
       const message = document.createElement('p');
@@ -658,7 +676,8 @@
 
     async function loadEntries() {
       try {
-        const response = await fetch('entries/index.json', { cache: 'no-store' });
+        const indexUrl = `entries/index.json?updated=${Date.now()}`;
+        const response = await fetch(indexUrl, { cache: 'no-store' });
         if (!response.ok) {
           showEmptyEntries();
           return;
@@ -682,6 +701,7 @@
 
     copyButton.addEventListener('click', copyMarkdown);
     saveButton.addEventListener('click', saveMarkdown);
+    issueButton.addEventListener('click', saveAsIssue);
     form.addEventListener('submit', (event) => event.preventDefault());
     updateView();
     loadEntries();

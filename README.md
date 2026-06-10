@@ -9,7 +9,8 @@ GitHub Pagesで公開された `index.html` をブラウザで開きます。
 1. 各入力欄に観測内容を書きます。
 2. 右側のMarkdownプレビューを確認します。
 3. `Markdownをコピー` ボタンでMarkdownをコピーするか、`Markdownを保存` ボタンで `.md` ファイルをダウンロードします。
-4. 表示されたファイル名候補を使い、`entries/` フォルダにMarkdownファイルを追加します。
+4. GitHub Pages上では、`Issueとして保存` ボタンからGitHub Issueを作成できます。
+5. `thought-map-entry` ラベル付きのIssueが作成されると、GitHub Actionsが `entries/` にMarkdownを保存します。
 
 ファイル名の例:
 
@@ -34,6 +35,39 @@ thought-map/
 ```
 
 `index.html` はブラウザ内でMarkdownを生成し、コピーまたはダウンロードできます。GitHub API連携は行わないため、ダウンロードした `.md` ファイルは手動で `entries/` に追加します。
+
+## Issue経由の保存
+
+GitHub Pagesの入力画面で `Issueとして保存` を押すと、GitHubの新規Issue作成画面が開きます。
+
+- Issue title: ファイル名候補
+- Issue body: 生成されたMNP Markdown
+- label: `thought-map-entry`
+
+Issueを投稿すると、`.github/workflows/save-entry.yml` が実行されます。ワークフローはIssue本文を `entries/*.md` として保存し、`entries/index.json` を更新してcommit & pushします。保存後、Issueにコメントしてcloseします。
+
+同じファイル名がすでに `entries/` に存在する場合は上書きしません。Issueへエラーコメントを残し、Issueはcloseしません。
+
+事前にGitHubリポジトリで `thought-map-entry` ラベルを作成しておいてください。
+
+## GitHub Actionsの権限
+
+Issue経由で保存するには、GitHub Actionsがリポジトリへ書き込める必要があります。
+
+GitHubの設定で次を有効にします。
+
+```text
+Settings > Actions > General > Workflow permissions
+Read and write permissions
+```
+
+ワークフロー側では次の権限を使います。
+
+```yaml
+permissions:
+  contents: write
+  issues: write
+```
 
 ## 採集一覧
 
