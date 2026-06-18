@@ -5,6 +5,7 @@
 ## 使い方
 
 GitHub Pagesで公開された `index.html` をブラウザで開きます。
+https://hinalatte.github.io/thought-map/
 
 1. 各入力欄に観測内容を書きます。
 2. 右側のMarkdownプレビューを確認します。
